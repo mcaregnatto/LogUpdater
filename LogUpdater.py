@@ -24,26 +24,47 @@ class CopyThread(QThread):
                 return
 
             if total_time >= self.tempo:
-                most_recent_file = None
-                most_recent_time = 0
-                for file in os.listdir(self.log_folder):
-                    if file.endswith('.txt'):
-                        file_path = os.path.join(self.log_folder, file)
-                        file_time = os.path.getmtime(file_path)
-                        if file_time > most_recent_time:
-                            most_recent_time = file_time
-                            most_recent_file = file
+                local_files = self.get_most_recent_files(self.log_folder, 2)
+                online_files = self.get_most_recent_files(self.log_rede, 2)
 
-                if most_recent_file:
-                    src = os.path.join(self.log_folder, most_recent_file)
-                    dst = os.path.join(self.log_rede, most_recent_file)
-                    shutil.copy2(src, dst)
+                if self.are_files_outdated(local_files, online_files):
+                    self.copy_files(local_files, self.log_rede)
 
                 total_time = 0
             else:
                 time.sleep(1)
                 total_time += 1
                 self.progress.emit(int((total_time / self.tempo) * 100))
+
+    def get_most_recent_files(self, directory, count):
+        files = []
+        for file in os.listdir(directory):
+            if file.endswith('.txt'):
+                file_path = os.path.join(directory, file)
+                file_time = os.path.getmtime(file_path)
+                files.append((file, file_time))
+
+        files.sort(key=lambda x: x[1], reverse=True)
+        return files[:count]
+
+    def are_files_outdated(self, local_files, online_files):
+        if len(local_files) != len(online_files):
+            return True
+
+        for local_file, online_file in zip(local_files, online_files):
+            local_file_path = os.path.join(self.log_folder, local_file[0])
+            online_file_path = os.path.join(self.log_rede, online_file[0])
+            if os.path.getmtime(local_file_path) > os.path.getmtime(online_file_path):
+                return True
+
+        return False
+
+    def copy_files(self, files, destination_directory):
+        for file_info in files:
+            file_name = file_info[0]
+            src = os.path.join(self.log_folder, file_name)
+            dst = os.path.join(destination_directory, file_name)
+            shutil.copy2(src, dst)
 
     def stop(self):
         self.stopped = True
@@ -119,7 +140,7 @@ class MainWindow(QMainWindow):
         self.tempo_label.resize(120, 25)
         self.tempo_label.setStyleSheet("color: gray; font-size: 9px;")
         self.tempo_label.setFont(font)
-
+        
     def load_log_folder(self):
         settings_file = "C:\\ProgramData\\serial_port_monitor\\settings.ini"
         with open(settings_file, "r") as f:
