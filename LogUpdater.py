@@ -140,7 +140,7 @@ class MainWindow(QMainWindow):
         self.tempo_label.resize(120, 25)
         self.tempo_label.setStyleSheet("color: gray; font-size: 9px;")
         self.tempo_label.setFont(font)
-        
+
     def load_log_folder(self):
         settings_file = "C:\\ProgramData\\serial_port_monitor\\settings.ini"
         with open(settings_file, "r") as f:
@@ -167,6 +167,7 @@ class MainWindow(QMainWindow):
         self.start_button.setEnabled(False)
         self.stop_button.setEnabled(True)
 
+# teste git
     def stop_copy(self):
         if self.copy_thread:
             self.copy_thread.stop()
