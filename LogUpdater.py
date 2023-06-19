@@ -6,6 +6,7 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QLineEdit, QPushB
 from PyQt5.QtCore import QTimer, QThread, pyqtSignal
 from PyQt5.QtGui import QFont
 
+
 class CopyThread(QThread):
     progress = pyqtSignal(int)
 
@@ -69,8 +70,52 @@ class CopyThread(QThread):
     def stop(self):
         self.stopped = True
 
-class MainWindow(QMainWindow):
+
+class PreMainWindow(QMainWindow):
     def __init__(self):
+        super().__init__()
+
+        self.setWindowTitle("Log Updater")
+        self.setFixedSize(300, 110)
+
+        font = QFont("Sugoe UI", 10)
+
+        self.select_label = QLabel("Selecione o número de monitoramentos:", self)
+        self.select_label.move(20, 20)
+        self.select_label.resize(260, 25)
+        self.select_label.setFont(font)
+
+        self.one_log_button = QPushButton("1 Log", self)
+        self.one_log_button.move(20, 60)
+        self.one_log_button.resize(120, 30)
+        self.one_log_button.clicked.connect(self.open_main_window)
+        self.one_log_button.setFont(font)
+
+        self.two_logs_button = QPushButton("2 Logs", self)
+        self.two_logs_button.move(160, 60)
+        self.two_logs_button.resize(120, 30)
+        self.two_logs_button.clicked.connect(self.open_two_main_windows)
+        self.two_logs_button.setFont(font)
+
+        self.main_window = None
+        self.main_window1 = None
+        self.main_window2 = None
+
+    def open_main_window(self):
+        self.hide()
+        self.main_window = MainWindow(num_logs=1)
+        self.main_window.show()
+
+    def open_two_main_windows(self):
+        self.hide()
+        self.main_window1 = MainWindow(num_logs=1)
+        self.main_window2 = MainWindow(num_logs=2)
+        self.main_window1.show()
+        self.main_window2.show()
+
+
+class MainWindow(QMainWindow):
+    def __init__(self, num_logs=1):
         super().__init__()
 
         self.setWindowTitle("Log Updater")
@@ -133,22 +178,25 @@ class MainWindow(QMainWindow):
         self.progress_bar.setGeometry(20, 220, 420, 25)
 
         self.copy_thread = None
-        self.load_log_folder()
+        self.load_log_folder(num_logs)
 
-        self.tempo_label = QLabel("developer: mcaregnatto", self)
-        self.tempo_label.move(340, 270)
-        self.tempo_label.resize(120, 25)
+        self.tempo_label = QLabel("developer: mcaregnatto   /   Log Updater v1.1 (2023)", self)
+        self.tempo_label.move(110, 270)
+        self.tempo_label.resize(250, 25)
         self.tempo_label.setStyleSheet("color: gray; font-size: 9px;")
         self.tempo_label.setFont(font)
 
-    def load_log_folder(self):
+    def load_log_folder(self, num_logs):
         settings_file = "C:\\ProgramData\\serial_port_monitor\\settings.ini"
+        log_folder_lines = []
         with open(settings_file, "r") as f:
             for line in f:
                 if line.startswith("log_folder="):
-                    self.log_folder = line.strip().split("=")[1]
-                    self.log_folder_edit.setText(self.log_folder)
-                    break
+                    log_folder_lines.append(line.strip().split("=")[1])
+
+        if num_logs <= len(log_folder_lines):
+            self.log_folder = log_folder_lines[num_logs - 1]
+            self.log_folder_edit.setText(self.log_folder)
 
     def select_directory(self):
         log_rede = QFileDialog.getExistingDirectory(self, "Selecione o diretório online")
@@ -167,7 +215,6 @@ class MainWindow(QMainWindow):
         self.start_button.setEnabled(False)
         self.stop_button.setEnabled(True)
 
-# teste git
     def stop_copy(self):
         if self.copy_thread:
             self.copy_thread.stop()
@@ -180,7 +227,8 @@ class MainWindow(QMainWindow):
     def update_progress(self, value):
         self.progress_bar.setValue(value)
 
+
 app = QApplication(sys.argv)
-window = MainWindow()
+window = PreMainWindow()
 window.show()
 sys.exit(app.exec_())
